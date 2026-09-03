@@ -1,8 +1,0 @@
-node_modules/
-test-pw/node_modules/
-test-pw/package*.json
-*.log
-.firebase/
-test-media/*
-!test-media/face.png
-.DS_Store

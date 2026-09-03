@@ -1,11 +1,20 @@
 {
   "name": "crooked-mirror",
-  "version": "4.0.0",
-  "description": "Crooked Mirror v4 — браузерная искажалка лиц: переработанные пресеты, эмодзи поверх лица, фото вместо лица. Всё считается локально.",
+  "version": "4.1.0",
+  "description": "Crooked Mirror v4 — браузерная искажалка лиц: эффекты на WebGL2, распознавание лиц MediaPipe, эмодзи/фото поверх лица. Всё работает локально в браузере.",
   "private": true,
-  
+  "scripts": {
+    "serve": "python3 -m http.server 8000 --bind 0.0.0.0",
+    "serve:local": "python3 -m http.server 8000 --bind 127.0.0.1",
+    "firebase:emulate": "firebase emulators:start --only hosting",
+    "deploy": "firebase deploy --only hosting",
+    "test": "cd test-pw && npm install && npx playwright install chromium && node e2e-v4.js"
+  },
   "engines": {
     "node": ">=18"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "playwright": "1.46.0"
+  }
 }
