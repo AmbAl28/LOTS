@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кривое зеркало v2 — WebGL + лица</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0d1117; font-family: system-ui, 'Segoe UI', Roboto, sans-serif; }
+  #ui {
+    position: fixed; top: 8px; left: 50%; transform: translateX(-50%); z-index: 30;
+    background: rgba(16, 20, 28, .92); color: #cfd6e4; border: 1px solid #2b3646; border-radius: 12px;
+    padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: calc(100vw - 24px);
+    box-shadow: 0 6px 24px rgba(0,0,0,.45);
+  }
+  #ui button, #ui select {
+    background: #1b2533; color: #e8eef7; border: 1px solid #35455c; border-radius: 8px;
+    padding: 6px 10px; font-size: 13px; cursor: pointer;
+  }
+  #ui button:hover { background: #24324a; }
+  #ui button:disabled { opacity: .45; cursor: default; }
+  #ui .sep { width: 1px; height: 24px; background: #2b3646; }
+  .label { font-size: 12px; color: #8fa0b8; }
+  #paramsPanel {
+    position: fixed; top: 70px; left: 10px; z-index: 25;
+    background: rgba(16, 20, 28, .92); color: #cfd6e4; border: 1px solid #2b3646; border-radius: 12px;
+    padding: 10px 14px; width: 260px; font-size: 12px;
+  }
+  #paramsPanel label { display: grid; grid-template-columns: 110px 1fr 34px; gap: 6px; align-items: center; margin: 4px 0; }
+  #paramsPanel input[type=range] { width: 100%; accent-color: #4da3ff; }
+  #paramsPanel b { color: #9ecbff; font-weight: 600; margin-bottom: 4px; display: block; }
+  #helpPanel {
+    position: fixed; top: 70px; right: 10px; z-index: 25; width: 300px;
+    background: rgba(16, 20, 28, .92); border: 1px solid #2b3646; border-radius: 12px;
+    color: #9fb0c8; font-size: 12px; line-height: 1.5; padding: 10px 14px;
+  }
+  #helpPanel b { color: #e8eef7; }
+  #urlPanel {
+    position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 26;
+    background: rgba(16,20,28,.95); border: 1px solid #2b3646; border-radius: 10px; padding: 8px; display: none;
+  }
+  #urlPanel input { width: 420px; max-width: 70vw; padding: 6px 8px; border-radius: 6px; border: 1px solid #35455c; background: #0d1420; color: #e8eef7; }
+  #stage {
+    position: absolute; inset: 0; margin: auto;
+  }
+  #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #glCanvas { background: #000; border-radius: 4px; }
+  #overlayCanvas { pointer-events: none; }
+  video { position: absolute; left: -10000px; width: 2px; height: 2px; opacity: 0; }
+  #status {
+    position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%); z-index: 30;
+    background: rgba(16, 20, 28, .92); border: 1px solid #2b3646; border-radius: 10px;
+    padding: 6px 14px; color: #cfd6e4; font-size: 12px; max-width: calc(100vw - 24px); text-align: center;
+  }
+  #perfLine { color: #7ee2a8; margin-left: 10px; }
+  #faceBox { display: flex; align-items: center; gap: 6px; }
+  #faceBox select { font-size: 12px; }
+  #recBtn.active { background: #5a1d24; border-color: #a33; }
+  @media (max-width: 760px) { #helpPanel { display: none; } #paramsPanel { width: 210px; } }
+</style>
+</head>
+<body>
+  <div id="ui">
+    <span class="label">источник:</span>
+    <button id="startFile" title="Локальный видеофайл — самый надёжный способ">📁 Файл</button>
+    <button id="startUrl" title="Прямая ссылка на .mp4/.webm с CORS">🔗 URL</button>
+    <button id="startScreen" title="Захват вкладки с видео (работает и с YouTube, кроме DRM)">🖥 Экран</button>
+    <button id="startCam" title="Веб-камера — удобно тестировать маски на себе">🎥 Камера</button>
+    <button id="stopBtn" title="Остановить">⏹</button>
+    <button id="playBtn" title="Пауза/Play для файла/URL">▶/⏸</button>
+    <span class="sep"></span>
+    <span class="label">эффект:</span>
+    <select id="effectSelect">
+      <option value="none">без эффекта</option>
+      <option value="wave" selected>Волна (кривое зеркало)</option>
+      <option value="bulge">Выпуклость</option>
+      <option value="twist">Твист</option>
+      <option value="ripple">Рябь</option>
+      <option value="pixelate">Пикселизация</option>
+      <option value="mirror">Зеркало</option>
+      <option value="invert">Инверсия</option>
+      <option value="grayscale">Ч/б</option>
+    </select>
+    <span class="sep"></span>
+    <span id="faceBox">
+      <label class="label" for="faceToggle" style="display:flex;align-items:center;gap:4px;">
+        <input type="checkbox" id="faceToggle"> 🧠 лица
+      </label>
+      <select id="maskMode" title="Куда применять эффект относительно лица">
+        <option value="off">эффект везде</option>
+        <option value="inside">только на лице</option>
+        <option value="outside">кроме лица</option>
+      </select>
+      <label class="label" for="vizToggle" title="Рисовать контуры лиц"><input type="checkbox" id="vizToggle" checked> контур</label>
+    </span>
+    <span class="sep"></span>
+    <button id="recBtn">⏺ Запись webm</button>
+    <button id="snapBtn">📷 Кадр PNG</button>
+    <button id="fsBtn">⛶</button>
+    <label class="label" for="monitorToggle" title="Слушать звук захваченной вкладки через эту страницу"><input type="checkbox" id="monitorToggle"> звук</label>
+  </div>
+
+  <div id="paramsPanel">
+    <b>Параметры</b>
+    <label>Амплитуда X <input type="range" id="ampX" min="0" max="120" step="1" value="15"><span id="ampXVal">15</span></label>
+    <label>Амплитуда Y <input type="range" id="ampY" min="0" max="120" step="1" value="15"><span id="ampYVal">15</span></label>
+    <label>Длина волны X <input type="range" id="waveLenX" min="10" max="600" step="1" value="120"><span id="waveLenXVal">120</span></label>
+    <label>Длина волны Y <input type="range" id="waveLenY" min="10" max="600" step="1" value="120"><span id="waveLenYVal">120</span></label>
+    <label>Скорость <input type="range" id="speed" min="0" max="5" step="0.05" value="1"><span id="speedVal">1</span></label>
+    <label>Сила (вып./твист/рябь) <input type="range" id="strength" min="0" max="1.5" step="0.05" value="0.6"><span id="strengthVal">0.6</span></label>
+    <label>Пиксель (размер) <input type="range" id="block" min="2" max="80" step="1" value="14"><span id="blockVal">14</span></label>
+    <label>Маска: запас <input type="range" id="expand" min="0" max="60" step="1" value="12"><span id="expandVal">12</span></label>
+    <label>Маска: мягкость <input type="range" id="feather" min="0" max="60" step="1" value="10"><span id="featherVal">10</span></label>
+    <p style="margin:6px 0 0;color:#71809a">Запас маски — единицы из 100, применяемые как 0.01·значение. Слайдеры «Маска» живут в FaceTracker.buildMask (expand/feather).</p>
+  </div>
+
+  <div id="helpPanel">
+    <b>Как это работает</b><br>
+    1. Выберите источник (файл — надёжнее всего; камера — чтобы сразу погонять маски на себе).<br>
+    2. Включите <b>🧠 лица</b> — загрузится MediaPipe FaceLandmarker (478 точек, офлайн из <code>vendor/</code>).<br>
+    3. Режим маски: «только на лице» — эффект стреляет по лицу (маска/деформация), «кроме лица» — инвертированная маска (лицо нетронуто, фон плывёт).<br>
+    4. <b>⏺ Запись</b> сохраняет обработанное видео (.webm) со звуком экрана.<br><br>
+    <b>Ограничения:</b> DRM-плееры (Кинопоиск, Netflix…) при захвате экрана дают чёрный кадр;
+    чужие URL работают только если сервер отдаёт CORS-заголовки.
+  </div>
+
+  <div id="urlPanel">
+    <input id="urlInput" placeholder="https://example.com/video.mp4 (прямая ссылка, CORS обязателен)">
+    <button id="urlGo">Открыть</button>
+  </div>
+
+  <div id="stage">
+    <canvas id="glCanvas"></canvas>
+    <canvas id="overlayCanvas"></canvas>
+  </div>
+  <video id="sourceVideo" autoplay playsinline muted></video>
+  <audio id="audioMonitor" autoplay></audio>
+  <input type="file" id="fileInput" accept="video/*" hidden>
+
+  <div id="status">
+    <span id="statusLine">Загрузка…</span><span id="perfLine"></span>
+  </div>
+
+  <script src="gl.js"></script>
+  <script src="faces.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
