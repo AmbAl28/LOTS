@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "ЗАМЕНИТЕ-NA-ID-ПРОЕКТА"
-  }
+    "default": "crooked-mirror-ce0ea",
+    "AmbAl": "crooked-mirror-ce0ea"
+  },
+  "targets": {},
+  "etags": {}
 }

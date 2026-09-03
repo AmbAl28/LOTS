@@ -1,27 +1,21 @@
 {
   "emulators": {
-    "hosting": { "port": 5100 }
+    "hosting": {
+      "port": 5100
+    }
   },
   "hosting": {
-    "public": ".",
+    "site": "crooked-mirror",
+    "public": "public",
     "ignore": [
       "firebase.json",
-      ".firebaserc",
       "**/.*",
-      "**/node_modules/**",
-      "test-pw/**",
-      "test-media/**",
-      "package.json",
-      "README.md"
+      "**/node_modules/**"
     ],
-    "headers": [
+    "rewrites": [
       {
-        "source": "/vendor/**",
-        "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800, immutable" }]
-      },
-      {
-        "source": "**/*.@(js|html)",
-        "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+        "source": "**",
+        "destination": "/index.html"
       }
     ]
   }
