@@ -6,11 +6,16 @@
   },
   "hosting": {
     "site": "crooked-mirror",
-    "public": "public",
+    "public": ".",
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "README.md",
+      "package*.json",
+      "test-pw/**",
+      "test-media/**",
+      "ДЕПЛОЙ-FIREBASE.md"
     ],
     "rewrites": [
       {

@@ -3,12 +3,7 @@
   "version": "4.0.0",
   "description": "Crooked Mirror v4 — браузерная искажалка лиц: переработанные пресеты, эмодзи поверх лица, фото вместо лица. Всё считается локально.",
   "private": true,
-  "scripts": {
-    "serve": "python3 -m http.server 8000 --bind 0.0.0.0",
-    "serve:npx": "npx --yes serve -l 8000 .",
-    "test": "node test-pw/test-v3.js",
-    "deploy": "firebase deploy --only hosting"
-  },
+  
   "engines": {
     "node": ">=18"
   },
